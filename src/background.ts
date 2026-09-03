@@ -62,6 +62,4 @@ function updatePage(key: keyof typeof actionMap, value?: any) {
     })
 }
 
-chrome.runtime.setUninstallURL(
-  'https://github.com/orgs/md-reader/discussions/51',
-)
+chrome.runtime.setUninstallURL('https://github.com/ChangJunPark/mdbe/issues')
