@@ -38,6 +38,9 @@ module.exports = {
       },
       {
         test: /\.(css|less)$/,
+        // Crepe declares the whole package side-effect-free, including its CSS.
+        // Override that metadata so production tree-shaking keeps imported themes.
+        sideEffects: true,
         use: [
           MiniCssExtractPlugin.loader,
           {
