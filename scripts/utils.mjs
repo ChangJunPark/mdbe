@@ -3,10 +3,18 @@ import { URL } from 'node:url'
 
 export const url = (path, base = import.meta.url) => new URL(path, base)
 
-export const version = process.env.npm_package_version
+const packageJson = JSON.parse(
+  await fs.readFile(url('../package.json'), 'utf-8'),
+)
+
+export const version = process.env.npm_package_version || packageJson.version
+if (typeof version !== 'string' || !/^\d+(?:\.\d+){1,3}$/.test(version)) {
+  throw new Error(`Invalid package version: ${String(version)}`)
+}
+
 export const newVersion = version
   .split('.')
-  .map(n => parseInt(n))
+  .map(n => parseInt(n, 10))
   .join('.')
 
 export function log(str) {
