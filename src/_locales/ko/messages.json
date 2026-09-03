@@ -1,10 +1,11 @@
 {
   "ext_name": {
-    "message": "MD Reader",
-    "description": "크롬을 위한 마크다운 리더 확장 프로그램."
+    "message": "mdbe",
+    "description": "A local-first Markdown workbench with a folder tree and WYSIWYG editing."
   },
   "ext_desc": {
-    "message": "크롬을 위한 마크다운 리더 확장 프로그램."
+    "message": "A local-first Markdown workbench with a folder tree and WYSIWYG editing.",
+    "description": "Edit local Markdown files in a worktree with rendered, direct editing."
   },
   "command_toggle_side": {
     "message": "토글 사이드바"
