@@ -1,0 +1,93 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install pnpm
+        run: npm install --global pnpm@9.15.9
+
+      - name: Verify tag and package version
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          test "$TAG_VERSION" = "$PACKAGE_VERSION"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check and test
+        run: |
+          pnpm exec tsc --noEmit
+          node --test tests/*.mjs
+
+      - name: Build release archive
+        run: pnpm build
+
+      - name: Verify release archive
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          MANIFEST_VERSION="$(node -p "require('./src/manifest.json').version")"
+          test "$VERSION" = "$MANIFEST_VERSION"
+          unzip -t "dist/mdbe-$VERSION.zip"
+          openssl dgst -sha256 "dist/mdbe-$VERSION.zip"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          ARCHIVE="dist/mdbe-$VERSION.zip"
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "$ARCHIVE" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "$ARCHIVE" \
+              --title "mdbe $GITHUB_REF_NAME" \
+              --generate-notes
+          fi
+
+      - id: google-auth
+        name: Authenticate to Google Cloud
+        if: >-
+          ${{ vars.CWS_PUBLISHER_ID != '' &&
+              vars.CWS_EXTENSION_ID != '' &&
+              vars.GCP_WORKLOAD_IDENTITY_PROVIDER != '' &&
+              vars.CWS_SERVICE_ACCOUNT_EMAIL != '' }}
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.CWS_SERVICE_ACCOUNT_EMAIL }}
+          token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/chromewebstore
+
+      - name: Submit Chrome Web Store update
+        if: ${{ steps.google-auth.outcome == 'success' }}
+        env:
+          CWS_ACCESS_TOKEN: ${{ steps.google-auth.outputs.access_token }}
+          CWS_PUBLISHER_ID: ${{ vars.CWS_PUBLISHER_ID }}
+          CWS_EXTENSION_ID: ${{ vars.CWS_EXTENSION_ID }}
+          CWS_PUBLISH_TYPE: ${{ vars.CWS_PUBLISH_TYPE }}
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          node scripts/chrome-web-store.mjs "dist/mdbe-$VERSION.zip"
+
+      - name: Explain skipped Web Store submission
+        if: ${{ steps.google-auth.outcome == 'skipped' }}
+        run: >-
+          echo "Chrome Web Store submission is disabled until the CWS and
+          Workload Identity repository variables are configured."
