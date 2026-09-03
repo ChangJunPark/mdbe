@@ -27,3 +27,17 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 Source: https://github.com/Milkdown/milkdown
+
+## Pretendard
+
+mdbe bundles Pretendard Variable 1.3.9 under the SIL Open Font License,
+Version 1.1.
+
+Copyright (c) 2021, Kil Hyung-jin
+(https://github.com/orioncactus/pretendard), with Reserved Font Name
+Pretendard.
+
+The complete license is distributed as
+`licenses/Pretendard-OFL-1.1.txt` in the extension package.
+
+Source: https://github.com/orioncactus/pretendard

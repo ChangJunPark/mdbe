@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install pnpm
+        run: npm install --global pnpm@9.15.9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check
+        run: pnpm exec tsc --noEmit
+
+      - name: Test
+        run: node --test tests/*.mjs
+
+      - name: Build extension
+        run: pnpm build
+
+      - name: Check archive integrity
+        run: unzip -t "dist/mdbe-$(node -p "require('./package.json').version").zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mdbe-${{ github.sha }}
+          path: dist/*.zip
+          if-no-files-found: error

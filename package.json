@@ -1,6 +1,7 @@
 {
   "name": "mdbe",
-  "version": "0.1.0",
+  "version": "0.2.0",
+  "packageManager": "pnpm@9.15.9",
   "author": "Bener and mdbe contributors",
   "license": "MIT",
   "description": "A local-first Markdown workbench with a folder tree and WYSIWYG editing",

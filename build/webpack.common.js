@@ -92,6 +92,10 @@ module.exports = {
           from: resolve(__dirname, '../THIRD_PARTY_NOTICES.md'),
         },
         {
+          from: resolve(__dirname, '../src/fonts/PRETENDARD-LICENSE.txt'),
+          to: 'licenses/Pretendard-OFL-1.1.txt',
+        },
+        {
           from: resolve(__dirname, '../src/_locales'),
           to: '_locales',
         },

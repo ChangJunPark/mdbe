@@ -1,3 +1,11 @@
+@font-face {
+  font-family: 'Pretendard';
+  font-style: normal;
+  font-weight: 45 920;
+  font-display: swap;
+  src: url('../fonts/PretendardVariable.woff2') format('woff2-variations');
+}
+
 * {
   box-sizing: border-box;
 }
@@ -15,6 +23,12 @@
   --mdbe-accent: #3859c7;
   --mdbe-danger: #b42318;
   --mdbe-shadow: 0 12px 32px rgba(28, 33, 43, 0.08);
+  --mdbe-ui-font-family: 'Pretendard', ui-sans-serif, -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --mdbe-editor-font-family: 'Pretendard', ui-sans-serif, -apple-system,
+    BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --mdbe-editor-font-size: 16px;
+  --mdbe-editor-line-height: 1.72;
 }
 
 :root[data-mdbe-theme='dark'] {
@@ -43,14 +57,15 @@ body {
 body {
   color: var(--mdbe-text);
   background: var(--mdbe-bg);
-  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont,
-    'Segoe UI', sans-serif;
+  font-family: var(--mdbe-ui-font-family);
   font-size: 14px;
 }
 
 button,
 a,
-input {
+input,
+select,
+output {
   font: inherit;
 }
 
@@ -93,6 +108,7 @@ button.primary:hover:not(:disabled) {
 }
 
 .mdbe {
+  position: relative;
   display: grid;
   grid-template-rows: 56px minmax(0, 1fr);
   width: 100%;
@@ -165,6 +181,20 @@ button.primary:hover:not(:disabled) {
   margin-left: auto;
 }
 
+.mdbe__appearance-toggle {
+  width: 34px;
+  min-height: 32px;
+  padding: 0;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+
+.mdbe__appearance-toggle[aria-expanded='true'] {
+  color: var(--mdbe-accent);
+  background: var(--mdbe-selected);
+  border-color: color-mix(in srgb, var(--mdbe-accent), transparent 45%);
+}
+
 .mdbe__document-meta > #file-name {
   max-width: 220px;
   overflow: hidden;
@@ -181,6 +211,121 @@ button.primary:hover:not(:disabled) {
 
 .mdbe__status.dirty {
   color: var(--mdbe-danger);
+}
+
+.mdbe__update-banner {
+  position: absolute;
+  z-index: 45;
+  right: 18px;
+  bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  width: min(560px, calc(100vw - 36px));
+  padding: 14px 14px 14px 18px;
+  background: var(--mdbe-panel-raised);
+  border: 1px solid var(--mdbe-border);
+  border-radius: 10px;
+  box-shadow: var(--mdbe-shadow);
+}
+
+.mdbe__update-banner[hidden] {
+  display: none;
+}
+
+.mdbe__update-banner > div:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.mdbe__update-banner strong {
+  font-size: 13px;
+}
+
+.mdbe__update-banner span {
+  color: var(--mdbe-muted);
+  font-size: 12px;
+}
+
+.mdbe__update-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.mdbe__appearance-panel {
+  position: absolute;
+  z-index: 40;
+  top: 48px;
+  right: 64px;
+  display: grid;
+  width: min(300px, calc(100vw - 24px));
+  gap: 16px;
+  padding: 16px;
+  background: var(--mdbe-panel-raised);
+  border: 1px solid var(--mdbe-border);
+  border-radius: 10px;
+  box-shadow: var(--mdbe-shadow);
+}
+
+.mdbe__appearance-panel[hidden] {
+  display: none;
+}
+
+.mdbe__appearance-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mdbe__appearance-heading strong {
+  font-size: 14px;
+}
+
+.mdbe__appearance-heading .icon-button {
+  color: var(--mdbe-muted);
+  font-size: 20px;
+}
+
+.mdbe__appearance-field {
+  display: grid;
+  gap: 8px;
+  color: var(--mdbe-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.mdbe__appearance-field > span {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mdbe__appearance-field output {
+  color: var(--mdbe-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.mdbe__appearance-field select {
+  width: 100%;
+  min-height: 34px;
+  padding: 0 10px;
+  color: var(--mdbe-text);
+  background: var(--mdbe-bg);
+  border: 1px solid var(--mdbe-border);
+  border-radius: 7px;
+}
+
+.mdbe__appearance-field input[type='range'] {
+  width: 100%;
+  accent-color: var(--mdbe-accent);
+}
+
+#reset-appearance {
+  justify-self: start;
 }
 
 .mdbe__workspace {
@@ -405,6 +550,9 @@ button.primary:hover:not(:disabled) {
 .mdbe__editor-host .milkdown .ProseMirror {
   min-height: calc(100vh - 94px);
   padding: 60px clamp(42px, 8vw, 110px) 180px;
+  font-family: var(--mdbe-editor-font-family);
+  font-size: var(--mdbe-editor-font-size);
+  line-height: var(--mdbe-editor-line-height);
   caret-color: var(--mdbe-accent);
 }
 
@@ -418,14 +566,14 @@ button.primary:hover:not(:disabled) {
 .mdbe__editor-host .milkdown .ProseMirror h4,
 .mdbe__editor-host .milkdown .ProseMirror h5,
 .mdbe__editor-host .milkdown .ProseMirror h6 {
-  font-family: ui-serif, Georgia, Cambria, 'Times New Roman', serif;
+  font-family: var(--mdbe-editor-font-family);
   font-weight: 650;
   letter-spacing: -0.025em;
 }
 
 .mdbe__editor-host .milkdown .ProseMirror p,
 .mdbe__editor-host .milkdown .ProseMirror li {
-  line-height: 1.72;
+  line-height: var(--mdbe-editor-line-height);
 }
 
 .mdbe__editor-host .milkdown .ProseMirror p {
@@ -503,6 +651,16 @@ button.primary:hover:not(:disabled) {
 }
 
 @media (max-width: 620px) {
+  .mdbe__update-banner {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .mdbe__update-actions {
+    margin-left: 0;
+  }
+
   #open-document,
   #new-document {
     display: none;
