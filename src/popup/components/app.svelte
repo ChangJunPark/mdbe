@@ -42,10 +42,19 @@
   function changeLocale(language) {
     localize = i18n(language)
   }
+
+  function openEditor() {
+    chrome.tabs.create({ url: chrome.runtime.getURL('editor.html') })
+    window.close()
+  }
 </script>
 
 <main>
   <Header {homepage} />
+
+  <button class="open-editor" type="button" on:click={openEditor}>
+    Open mdbe editor
+  </button>
 
   {#if !isAllowViewFile}
     <Warning {localize} />
@@ -143,6 +152,21 @@
     padding: 22px 24px 10px;
     border: 1px solid #24315870;
     border-radius: 1px;
+  }
+  .open-editor {
+    width: 100%;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 7px;
+    margin: 0 0 18px;
+    color: white;
+    background: #607cd2;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .open-editor:hover {
+    background: #4c68bb;
   }
   .form-item {
     margin-bottom: 6px;

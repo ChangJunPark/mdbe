@@ -1,93 +1,56 @@
-# Markdown Reader
+# mdbe
 
-<img alt="Markdown Reader Logo" src="https://raw.githubusercontent.com/md-reader/md-reader/main/src//images/logo-stroke.svg" align="right" width="120">
+A local-first Markdown workbench that runs in a browser extension.
 
-English | [中文](./README-cn.md) | [한국어](./README-ko.md)
+> MVP status: usable for local editing, but not yet published to a browser store.
 
-https://md-reader.github.io
+## What it does
 
-[![](https://badgen.net/chrome-web-store/v/medapdbncneneejhbgcjceippjlfkmkg?icon=chrome&color=607cd2)](https://chromewebstore.google.com/detail/md-reader/medapdbncneneejhbgcjceippjlfkmkg) [![](https://badgen.net/chrome-web-store/stars/medapdbncneneejhbgcjceippjlfkmkg?icon=chrome&color=607cd2)](https://chromewebstore.google.com/detail/md-reader/medapdbncneneejhbgcjceippjlfkmkg) [![](https://badgen.net/chrome-web-store/users/medapdbncneneejhbgcjceippjlfkmkg?icon=chrome&color=607cd2)](https://chromewebstore.google.com/detail/md-reader/medapdbncneneejhbgcjceippjlfkmkg)
+- Shows Markdown files from a selected folder in a lazy-loaded worktree
+- Provides Typora-style, Markdown-native WYSIWYG editing powered by [Milkdown Crepe](https://milkdown.dev/)
+- Opens a worktree file with one click and saves changes back to the same local file
+- Opens and saves individual `.md`, `.mdx`, `.mkd`, and `.markdown` files
+- Falls back to downloading a copy when direct file access is unavailable
+- Recovers an unsaved draft when the same editor tab reloads, with stale drafts pruned after 30 days
+- Supports light and dark themes and a collapsible, resizable sidebar
+- Keeps the original Markdown URL reader, including its diagram and rendering plugins
 
-Markdown Reader is a powerful browser extension that enables you to conveniently preview Markdown documents in your browser.
+File contents are processed locally. mdbe does not add an upload, analytics, or account service.
 
-> This repository contains the old source code of Markdown Reader(2.x version) and is no longer maintained.
-> It is used only to collect issues about Markdown Reader.
-> 
-> Please download the 3.x version from the [website](https://md-reader.github.io).
+## Try it locally
 
-- **Document Formats**: Preview links in `file://`, `http://`, `https://` and files with `.md`, `.mkd`, `.mdx`, `.markdown` extensions:
-  - `https://example.com/example.md` (online Markdown URL)
-  - `file:///Users/my-project/readme.markdown` (local Markdown file, \*[requires specific permissions](#allowing-file-access-permission))
-- **Syntax Plugins**: Emoji, superscripts/subscripts, checkboxes, math, flowcharts, Gantt charts, TOC, insertions, abbreviations, annotations, alerts.
-- **Themes**: High quality light/dark themes and code highlighting.
-- **Hot Reloading**: Real-time document changes and centered display for better reading.
-- **Document Organization**: Sidebar directory, original content preview, and image media support.
-- **Shortcuts**: Quick function invocation with web extension shortcuts.
+Requirements: Node.js 18+ and pnpm 9+.
 
-![banner](./example/example-1.png)
+```bash
+pnpm install --frozen-lockfile
+pnpm build
+```
 
-The default theme styles are stored in https://github.com/md-reader/theme. If you’d like to view or customize the theme styles, feel free to visit the link and adjust the CSS files as needed.
+Open the browser's extension management page, enable developer mode, and load the generated `extension/` directory as an unpacked extension. Click the extension icon and choose **Open mdbe editor**.
 
-## Installation
+The production archive is written to `dist/mdbe-<version>.zip`.
 
-### A. Install from web extension Store
+## Keyboard shortcuts
 
-<a href="https://chromewebstore.google.com/detail/md-reader/medapdbncneneejhbgcjceippjlfkmkg" target="_blank"><img src="./src/images/Chrome.png" style="width:50px"/></a>
-<a href="https://microsoftedge.microsoft.com/addons/detail/markdown-reader/djnplooklihmkcioemdjfcednfkpiodc" target="_blank"><img src="./src/images/Edge.png" style="width:50px"/></a>
-<a href="https://addons.mozilla.org/firefox/addon/markdown-reader-ext/" target="_blank"><img src="./src/images/Firefox.png" style="width:50px"/></a>
-<a href="https://chromewebstore.google.com/detail/md-reader/medapdbncneneejhbgcjceippjlfkmkg" target="_blank"><img src="./src/images/Arc.png" style="width:50px"/></a>
+| Action          | Shortcut           |
+| --------------- | ------------------ |
+| Save            | `Cmd/Ctrl+S`       |
+| Save as         | `Cmd/Ctrl+Shift+S` |
+| Open file       | `Cmd/Ctrl+O`       |
+| Open folder     | `Cmd/Ctrl+Shift+O` |
+| New document    | `Cmd/Ctrl+Alt+N`   |
+| Toggle worktree | `Cmd/Ctrl+Alt+B`   |
 
-### B. Building installation
+## Current limitations
 
-Example of Chrome:
+- Folder worktrees and direct write-back depend on the File System Access API and are currently best supported by Chromium browsers. Other browsers can open a single file and download an edited copy.
+- File and folder permissions last for the current tab session. After a reload, a recovered draft must be connected to a destination again with **Save…**, and the folder must be reopened.
+- WYSIWYG editing serializes the Markdown document model. It can normalize whitespace or source formatting, and unsupported custom syntax may not round-trip exactly. Keep a backup of irreplaceable files while this is an MVP.
+- Raw HTML is represented as inert Markdown content in the editor and is never executed with extension privileges.
+- Relative local image paths are not resolved yet because browser file handles do not expose a conventional filesystem base URL.
 
-1. Clone the `md-reader` repository and build it:
+## Upstream and license
 
-   ```bash
-   # Clone this repository
-   git clone https://github.com/md-reader/md-reader.git && cd md-reader
+mdbe is forked from [md-reader/md-reader](https://github.com/md-reader/md-reader), originally created by Bener. The upstream 2.x source and mdbe modifications are distributed under the [MIT License](./LICENSE). The original copyright and license notice are preserved.
 
-   # Install dependencies
-   pnpm install
-
-   # Build the extension
-   pnpm build
-   ```
-
-2. After a successful build, the `md-reader/dist` folder will contain the `md-reader-xxx.zip` extension package.
-
-3. Go to the Extensions management page in Chrome and drag the extension into the browser to install it.
-
-## Usage
-
-Example of Chrome:
-
-After installation, Chrome is now able to preview online markdown documents. However, it is not able to preview local markdown documents by default and requires enabling file access permission for the Chrome extension.
-
-### Allowing File Access Permission
-
-> Due to security reasons, Chrome by default disables extension access to local files. Therefore, after installing the plugin, you need to manually enable the permission in order to preview local markdown files.
-
-In the Chrome Extensions management page, locate the installed "Markdown Reader" extension, click on "Details", and find the option "Allow access to file URLs" in the details page. Switch it to the enabled state (Please rest assured that "Markdown Reader" only performs read and display operations on markdown files and will not modify or upload user file data).
-
-<br/>
-
-Now all the work is done~!ヾ(◍°∇°◍)ﾉ
-
-Try the effect by opening this online document: [Example Document](https://raw.githubusercontent.com/md-reader/md-reader/main/example/example.md); You can also try dragging a Markdown document directly into the browser!
-
-Feel free to ask any questions or provide suggestions.
-
-Giving a star to show your support is also an encouragement for me~!
-
-## Join the WeChat Community
-
-Scan the code to get the latest news and technical support:
-
-<img src="./src/images/mp-qrcode.jpg" alt="" style="width:220px"/>
-
-## License
-
-License [MIT](https://github.com/md-reader/md-reader/blob/main/LICENSE)
-
-© 2018-present, [Bener](https://github.com/Heroor)
+The WYSIWYG editor uses Milkdown/Crepe under the MIT License. See [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md).

@@ -1,12 +1,12 @@
 <script>
   import Icon from './icon.svelte'
-  import logoIcon from '@/images/logo-stroke.svg'
+  import logoIcon from '@/images/mdbe-logo.svg'
   export let homepage
 </script>
 
 <h1>
   <Icon class="icon-logo" svg={logoIcon} />
-  <a href={homepage} target="__blank">MD-READER</a>
+  <a href={homepage} target="__blank">MDBE</a>
 </h1>
 
 <style>

@@ -1,82 +1,56 @@
-# Markdown Reader
+# mdbe
 
-<img alt="Markdown Reader Logo" src="https://raw.githubusercontent.com/md-reader/md-reader/main/src//images/logo-stroke.svg" align="right" width="120">
+브라우저 확장 프로그램에서 실행되는 로컬 우선 Markdown 워크벤치입니다.
 
-[English](./README.md) | [中文](./README-cn.md) | 한국어
+> 현재 상태: 로컬에서 사용할 수 있는 MVP이며 브라우저 스토어에는 아직 배포하지 않았습니다.
 
-https://md-reader.github.io
+## 주요 기능
 
-[![](https://badgen.net/chrome-web-store/v/medapdbncneneejhbgcjceippjlfkmkg?icon=chrome&color=607cd2)](https://chromewebstore.google.com/detail/md-reader/medapdbncneneejhbgcjceippjlfkmkg) [![](https://badgen.net/chrome-web-store/stars/medapdbncneneejhbgcjceippjlfkmkg?icon=chrome&color=607cd2)](https://chromewebstore.google.com/detail/md-reader/medapdbncneneejhbgcjceippjlfkmkg) [![](https://badgen.net/chrome-web-store/users/medapdbncneneejhbgcjceippjlfkmkg?icon=chrome&color=607cd2)](https://chromewebstore.google.com/detail/md-reader/medapdbncneneejhbgcjceippjlfkmkg)
+- 선택한 폴더의 Markdown 파일을 왼쪽 워크트리에 표시
+- [Milkdown Crepe](https://milkdown.dev/) 기반의 Typora 스타일 WYSIWYG 편집
+- 워크트리에서 파일을 클릭해 열고 `Cmd/Ctrl+S`로 같은 로컬 파일에 저장
+- `.md`, `.mdx`, `.mkd`, `.markdown` 개별 파일 열기와 저장
+- 직접 저장을 지원하지 않는 환경에서는 파일 다운로드로 대체
+- 같은 편집기 탭을 새로고침했을 때 미저장 초안 복구, 30일이 지난 초안은 자동 정리
+- 밝은 테마와 어두운 테마, 접거나 너비를 바꿀 수 있는 사이드바
+- 기존 Markdown URL 리더와 그 렌더링 플러그인 유지
 
-마크다운 리더는 브라우저에서 마크다운 문서를 편리하게 미리 볼 수 있게 해주는 강력한 브라우저 확장 프로그램입니다.
+파일 내용은 브라우저 안에서만 처리합니다. 업로드, 분석, 계정 서버를 추가하지 않았습니다.
 
-- **문서 형식**: `file://`, `http://`, `https://` 프로토콜과 `.md`, `.mkd`, `.mdx`, `.markdown` 확장자 파일 미리보기 지원:
-  - `https://example.com/example.md` (온라인 Markdown URL)
-  - `file:///Users/my-project/readme.markdown` (로컬 마크다운 파일, \*[특정 권한 필요](#파일-액세스-권한-허용))
-- **구문 플러그인**: 이모지, 위첨자/아래첨자, 체크박스, 수식, 흐름도, 간트 차트, 목차, 인서션, 약어, 주석, 알림 등의 기능 제공.
-- **테마**: 고품질 라이트와 다크 테마, 코드 강조 기능 지원.
-- **실시간 리로딩**: 실시간 문서 변경과 더 나은 읽기 경험을 위한 중앙 표시 기능.
-- **문서 구성**: 사이드바 디렉토리, 원본 콘텐츠 미리보기, 이미지 미디어 지원 기능 포함.
-- **단축키**: 웹 확장 프로그램 단축키를 통한 빠른 기능 실행 지원.
+## 로컬 실행
 
-![banner](./example/example-1.png)
+Node.js 18 이상과 pnpm 9 이상이 필요합니다.
 
-기본 테마 형식은 https://github.com/md-reader/theme 에 저장된다.테마 스타일을 보거나 사용자 정의할 경우,이 링크에 접근하여 css 파일을 조정할 수 있다.
+```bash
+pnpm install --frozen-lockfile
+pnpm build
+```
 
-## 설치
+브라우저의 확장 프로그램 관리 화면에서 개발자 모드를 켜고 생성된 `extension/` 폴더를 압축 해제된 확장 프로그램으로 불러옵니다. 확장 아이콘에서 **Open mdbe editor**를 선택하면 됩니다.
 
-### A. 웹 확장 스토어에서 설치
+배포용 압축 파일은 `dist/mdbe-<version>.zip`에 생성됩니다.
 
-<a href="https://chromewebstore.google.com/detail/md-reader/medapdbncneneejhbgcjceippjlfkmkg" target="_blank"><img src="./src/images/Chrome.png" style="width:50px"/></a>
-<a href="https://microsoftedge.microsoft.com/addons/detail/markdown-reader/djnplooklihmkcioemdjfcednfkpiodc" target="_blank"><img src="./src/images/Edge.png" style="width:50px"/></a>
-<a href="https://addons.mozilla.org/firefox/addon/markdown-reader-ext/" target="_blank"><img src="./src/images/Firefox.png" style="width:50px"/></a>
-<a href="https://chromewebstore.google.com/detail/md-reader/medapdbncneneejhbgcjceippjlfkmkg" target="_blank"><img src="./src/images/Arc.png" style="width:50px"/></a>
+## 단축키
 
-### B. 빌드 설치
+| 작업          | 단축키             |
+| ------------- | ------------------ |
+| 저장          | `Cmd/Ctrl+S`       |
+| 다른 이름으로 | `Cmd/Ctrl+Shift+S` |
+| 파일 열기     | `Cmd/Ctrl+O`       |
+| 폴더 열기     | `Cmd/Ctrl+Shift+O` |
+| 새 문서       | `Cmd/Ctrl+Alt+N`   |
+| 워크트리 전환 | `Cmd/Ctrl+Alt+B`   |
 
-Chrome의 예:
+## 현재 제약
 
-1. `md-reader` 저장소를 복제하고 빌드하세요:
+- 폴더 워크트리와 원본 파일 저장은 File System Access API를 사용하므로 Chromium 계열 브라우저에서 가장 안정적입니다. 그 외 환경에서는 개별 파일을 열고 편집본을 다운로드할 수 있습니다.
+- 파일과 폴더 권한은 현재 탭에서만 유지됩니다. 새로고침 후 복구된 초안은 **Save…**에서 저장 위치를 다시 연결해야 하며 폴더도 다시 열어야 합니다.
+- WYSIWYG 편집기는 Markdown 문서 모델을 다시 직렬화합니다. 공백이나 원문 서식이 정리될 수 있고 지원하지 않는 확장 문법은 완전히 보존되지 않을 수 있습니다. MVP 기간에는 중요한 파일의 백업을 권장합니다.
+- Markdown 내부의 raw HTML은 실행하지 않고 비활성 Markdown 내용으로 표시합니다.
+- 브라우저 파일 핸들에는 일반 파일 경로가 없으므로 로컬 상대 경로 이미지는 아직 처리하지 않습니다.
 
-   ```bash
-   # 이 저장소를 복제합니다
-   git clone https://github.com/md-reader/md-reader.git && cd md-reader
+## 원본과 라이선스
 
-   # 의존성을 설치합니다
-   pnpm install
+mdbe는 Bener가 만든 [md-reader/md-reader](https://github.com/md-reader/md-reader)의 공개 2.x 소스를 포크했습니다. 원본 저작권 표시를 유지하며 [MIT License](./LICENSE)로 배포합니다.
 
-   # 확장 프로그램을 빌드합니다
-   pnpm build
-   ```
-
-2. 빌드가 성공적으로 완료되면 `md-reader/dist` 폴더에 `md-reader-xxx.zip` 확장 프로그램 패키지가 생성됩니다.
-
-3. Chrome의 확장 프로그램 관리 페이지로 이동하여 확장 프로그램을 브라우저에 드래그하여 설치하세요.
-
-## 사용법
-
-Chrome의 예:
-
-설치 후에는 Chrome에서 온라인 마크다운 문서를 미리 볼 수 있습니다. 그러나 Chrome은 기본적으로 로컬 마크다운 문서를 미리 볼 수 없으며 Chrome 확장 프로그램에 대한 파일 액세스 권한을 활성화해야 합니다.
-
-### 파일 액세스 권한 허용
-
-> 보안상의 이유로 Chrome은 기본적으로 로컬 파일에 대한 확장 프로그램 액세스를 비활성화합니다. 따라서 플러그인을 설치한 후 로컬 마크다운 파일을 미리 보려면 권한을 수동으로 활성화해야 합니다.
-
-Chrome 확장 프로그램 관리 페이지에서 설치한 "Markdown Reader" 확장 프로그램을 찾아 "상세정보"를 클릭하고 "파일 URL에 대한 액세스 허용" 옵션을 찾으세요. 세부 정보 페이지에서 이를 활성 상태로 전환하세요 ("Markdown Reader"는 마크다운 파일에 대해 읽기 및 표시 작업만 수행하며 사용자 파일 데이터를 수정하거나 업로드하지 않음을 안심하셔도 됩니다).
-
-<br/>
-
-이제 모든 작업이 완료되었습니다~! ヾ(◍°∇°◍)ﾉ
-
-이 온라인 문서를 열어 효과를 확인해보세요: [예시 문서](https://raw.githubusercontent.com/md-reader/md-reader/main/example/example.md); 또한 마크다운 문서를 브라우저로 직접 드래그하여 시도해볼 수도 있습니다!
-
-질문이나 제안이 있으면 언제든지 말씀해주세요.
-
-지원을 나타내기 위해 별을 주시는 것도 저에게 큰 격려입니다~!
-
-## 라이선스
-
-라이선스 [MIT](https://github.com/md-reader/md-reader/blob/main/LICENSE)
-
-© 2018-present, [Bener](https://github.com/Heroor)
+WYSIWYG 편집기에는 MIT License의 Milkdown/Crepe를 사용합니다. 자세한 내용은 [THIRD_PARTY_NOTICES.md](./THIRD_PARTY_NOTICES.md)를 참고하세요.

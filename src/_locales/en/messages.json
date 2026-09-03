@@ -1,11 +1,11 @@
 {
   "ext_name": {
-    "message": "MD Reader",
-    "description": "A markdown reader extension for Chrome."
+    "message": "mdbe",
+    "description": "A local-first Markdown workbench with a folder tree and WYSIWYG editing."
   },
   "ext_desc": {
-    "message": "A markdown reader extension for Chrome.",
-    "description": "Support view file://, http://, https:// URL and *.md, *.mkd, *.markdown extension files."
+    "message": "A local-first Markdown workbench with a folder tree and WYSIWYG editing.",
+    "description": "Edit local Markdown files in a worktree with rendered, direct editing."
   },
   "command_toggle_side": {
     "message": "Toggle side"

@@ -1,10 +1,11 @@
 {
   "ext_name": {
-    "message": "MD Reader",
-    "description": "一个可以使 Chrome 预览 markdown 文件的浏览器扩展。"
+    "message": "mdbe",
+    "description": "A local-first Markdown workbench with a folder tree and WYSIWYG editing."
   },
   "ext_desc": {
-    "message": "一个可以使 Chrome 预览 markdown 文件的浏览器扩展。"
+    "message": "A local-first Markdown workbench with a folder tree and WYSIWYG editing.",
+    "description": "Edit local Markdown files in a worktree with rendered, direct editing."
   },
   "command_toggle_side": {
     "message": "切换侧边栏"
