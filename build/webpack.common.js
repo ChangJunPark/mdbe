@@ -10,6 +10,7 @@ module.exports = {
     content: resolve(__dirname, '../src/main.ts'),
     background: resolve(__dirname, '../src/background.ts'),
     popup: resolve(__dirname, '../src/popup/index.ts'),
+    editor: resolve(__dirname, '../src/editor/index.ts'),
   },
   output: {
     filename: 'js/[name].js',
@@ -54,7 +55,7 @@ module.exports = {
         exclude: /node_modules/,
       },
       {
-        test: /\.woff2$/,
+        test: /\.(woff2?|ttf|otf|eot)$/,
         type: 'asset/resource',
         generator: {
           outputPath: 'fonts',
@@ -82,6 +83,12 @@ module.exports = {
           from: resolve(__dirname, '../src/manifest.json'),
         },
         {
+          from: resolve(__dirname, '../LICENSE'),
+        },
+        {
+          from: resolve(__dirname, '../THIRD_PARTY_NOTICES.md'),
+        },
+        {
           from: resolve(__dirname, '../src/_locales'),
           to: '_locales',
         },
@@ -92,6 +99,10 @@ module.exports = {
         {
           from: resolve(__dirname, '../src/popup/index.html'),
           to: 'popup.html',
+        },
+        {
+          from: resolve(__dirname, '../src/editor/index.html'),
+          to: 'editor.html',
         },
       ],
     }),
