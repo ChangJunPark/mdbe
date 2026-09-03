@@ -1,8 +1,14 @@
 import storage from '@/core/storage'
 import commands from '@/core/commands'
+import {
+  UPDATE_AVAILABLE_ACTION,
+  UPDATE_READY_STORAGE_KEY,
+  type ExtensionUpdateInfo,
+} from '@/core/extension-update'
 
 chrome.runtime.onMessage.addListener(({ action, data }, sender, callback) => {
-  messageHandler(action, data, sender, callback)
+  if (action !== 'storage' && action !== 'fetch') return false
+  void messageHandler(action, data, sender, callback)
   return true
 })
 
@@ -38,6 +44,30 @@ async function fetchData(url?: string) {
       return err.message
     })
 }
+
+chrome.runtime.onUpdateAvailable.addListener(({ version }) => {
+  const update: ExtensionUpdateInfo = {
+    version,
+    detectedAt: Date.now(),
+  }
+
+  chrome.storage.local.set({ [UPDATE_READY_STORAGE_KEY]: update }, () => {
+    void chrome.runtime.lastError
+  })
+  chrome.runtime.sendMessage(
+    { action: UPDATE_AVAILABLE_ACTION, data: update },
+    () => {
+      void chrome.runtime.lastError
+    },
+  )
+})
+
+chrome.runtime.onInstalled.addListener(({ reason }) => {
+  if (reason !== 'update') return
+  chrome.storage.local.remove(UPDATE_READY_STORAGE_KEY, () => {
+    void chrome.runtime.lastError
+  })
+})
 
 // Chrome extension shortcuts
 chrome.commands.onCommand.addListener(action => {
