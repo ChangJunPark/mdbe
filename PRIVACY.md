@@ -1,6 +1,6 @@
 # mdbe Privacy Policy
 
-Effective date: September 2, 2026
+Effective date: September 3, 2026
 
 mdbe is a local-first Markdown reader and editor. This policy explains what data the extension handles, how it is used, and where it is stored.
 
