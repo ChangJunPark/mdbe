@@ -46,11 +46,106 @@
           <span id="save-status" class="mdbe__status" aria-live="polite"
             >Loading</span
           >
+          <button
+            id="toggle-appearance"
+            class="mdbe__appearance-toggle"
+            type="button"
+            aria-haspopup="dialog"
+            aria-controls="appearance-panel"
+            aria-expanded="false"
+            title="Editor appearance"
+          >
+            Aa
+          </button>
           <button id="toggle-theme" type="button" title="Toggle theme">
             Dark
           </button>
         </div>
       </header>
+
+      <aside
+        id="update-banner"
+        class="mdbe__update-banner"
+        aria-label="Extension update"
+        hidden
+      >
+        <div>
+          <strong id="update-title">mdbe update ready</strong>
+          <span id="update-message">Save your work before restarting.</span>
+        </div>
+        <div class="mdbe__update-actions">
+          <button id="dismiss-update" type="button">Later</button>
+          <button id="apply-update" class="primary" type="button">
+            Restart to update
+          </button>
+        </div>
+      </aside>
+
+      <section
+        id="appearance-panel"
+        class="mdbe__appearance-panel"
+        role="dialog"
+        aria-label="Editor appearance"
+        hidden
+      >
+        <div class="mdbe__appearance-heading">
+          <strong>Editor appearance</strong>
+          <button
+            id="close-appearance"
+            class="icon-button"
+            type="button"
+            aria-label="Close editor appearance"
+          >
+            ×
+          </button>
+        </div>
+
+        <label class="mdbe__appearance-field" for="editor-font-family">
+          <span>Font</span>
+          <select id="editor-font-family">
+            <option value="pretendard">Pretendard</option>
+            <option value="system">System sans</option>
+            <option value="serif">Serif</option>
+            <option value="monospace">Monospace</option>
+          </select>
+        </label>
+
+        <label class="mdbe__appearance-field" for="editor-font-size">
+          <span>
+            Size
+            <output id="editor-font-size-value" for="editor-font-size"
+              >16 px</output
+            >
+          </span>
+          <input
+            id="editor-font-size"
+            type="range"
+            min="12"
+            max="24"
+            step="1"
+            value="16"
+          />
+        </label>
+
+        <label class="mdbe__appearance-field" for="editor-line-height">
+          <span>
+            Line height
+            <output id="editor-line-height-value" for="editor-line-height"
+              >1.72</output
+            >
+          </span>
+          <input
+            id="editor-line-height"
+            type="range"
+            min="1.2"
+            max="2.4"
+            step="0.01"
+            value="1.72"
+          />
+        </label>
+
+        <button id="reset-appearance" type="button">Reset to defaults</button>
+      </section>
 
       <main class="mdbe__workspace">
         <aside

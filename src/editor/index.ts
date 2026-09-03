@@ -1,6 +1,31 @@
 import debounce from 'lodash.debounce'
 import { Crepe } from '@milkdown/crepe'
 import { replaceAll } from '@milkdown/kit/utils'
+import {
+  installMdbeAsideBridge,
+  type MdbeAsideDocument,
+  type MdbeAsideSaveOutcome,
+} from './aside-bridge'
+import {
+  APPEARANCE_STORAGE_KEY,
+  DEFAULT_EDITOR_APPEARANCE,
+  editorFontStack,
+  normalizeEditorAppearance,
+  parseEditorAppearance,
+  type EditorAppearance,
+  type EditorFontId,
+} from './appearance'
+import {
+  UPDATE_AVAILABLE_ACTION,
+  UPDATE_READY_STORAGE_KEY,
+  isNewerExtensionVersion,
+  normalizeExtensionUpdateInfo,
+  type ExtensionUpdateInfo,
+} from '@/core/extension-update'
+import {
+  FileChangedOnDiskError,
+  assertFileMatchesBaseline,
+} from './file-conflict'
 import '@milkdown/crepe/theme/common/style.css'
 import '@milkdown/crepe/theme/frame.css'
 import './style.less'
@@ -100,6 +125,27 @@ const newButton = requiredElement<HTMLButtonElement>('new-document')
 const openButton = requiredElement<HTMLButtonElement>('open-document')
 const saveButton = requiredElement<HTMLButtonElement>('save-document')
 const saveAsButton = requiredElement<HTMLButtonElement>('save-as-document')
+const updateBanner = requiredElement<HTMLElement>('update-banner')
+const updateTitle = requiredElement<HTMLElement>('update-title')
+const updateMessage = requiredElement<HTMLElement>('update-message')
+const dismissUpdateButton = requiredElement<HTMLButtonElement>('dismiss-update')
+const applyUpdateButton = requiredElement<HTMLButtonElement>('apply-update')
+const appearanceButton = requiredElement<HTMLButtonElement>('toggle-appearance')
+const appearancePanel = requiredElement<HTMLElement>('appearance-panel')
+const closeAppearanceButton =
+  requiredElement<HTMLButtonElement>('close-appearance')
+const fontFamilySelect =
+  requiredElement<HTMLSelectElement>('editor-font-family')
+const fontSizeInput = requiredElement<HTMLInputElement>('editor-font-size')
+const fontSizeValue = requiredElement<HTMLOutputElement>(
+  'editor-font-size-value',
+)
+const lineHeightInput = requiredElement<HTMLInputElement>('editor-line-height')
+const lineHeightValue = requiredElement<HTMLOutputElement>(
+  'editor-line-height-value',
+)
+const resetAppearanceButton =
+  requiredElement<HTMLButtonElement>('reset-appearance')
 const themeButton = requiredElement<HTMLButtonElement>('toggle-theme')
 
 let crepe: Crepe | null = null
@@ -107,12 +153,18 @@ let applyingContent = false
 let currentMarkdown = ''
 let lastSavedContent: string | null = null
 let currentFileHandle: WritableFileHandle | null = null
+let currentDiskBaseline: {
+  handle: WritableFileHandle
+  content: string
+} | null = null
 let currentFileName = 'untitled.md'
 let currentPath = 'untitled.md'
 let rootDirectoryHandle: DirectoryHandle | null = null
 let rootNodes: TreeNode[] = []
 let dirty = false
 let saving = false
+let documentRevision = 0
+let pendingUpdate: ExtensionUpdateInfo | null = null
 
 pruneExpiredDrafts()
 const storedDraft = localStorage.getItem(DRAFT_KEY)
@@ -129,6 +181,9 @@ const initialTheme =
     : window.matchMedia('(prefers-color-scheme: dark)').matches
     ? 'dark'
     : 'light'
+let editorAppearance = parseEditorAppearance(
+  localStorage.getItem(APPEARANCE_STORAGE_KEY),
+)
 
 const persistDraft = debounce(() => {
   localStorage.setItem(DRAFT_KEY, currentMarkdown)
@@ -137,7 +192,16 @@ const persistDraft = debounce(() => {
 }, 120)
 
 applyTheme(initialTheme)
+applyEditorAppearance(editorAppearance)
+syncAppearanceControls()
 bindEvents()
+initializeUpdateHandling()
+installMdbeAsideBridge(window, {
+  getDocument: getAsideDocument,
+  replaceMarkdown: replaceMarkdownFromAside,
+  flushDraft: flushDraftForAside,
+  save: saveCurrentFileForAside,
+})
 void createEditor(initialMarkdown, hasStoredDraft)
 
 function requiredElement<T extends HTMLElement>(id: string): T {
@@ -166,8 +230,9 @@ async function createEditor(markdown: string, restoredDraft: boolean) {
 
   editor.on(listener => {
     listener.markdownUpdated((_ctx, nextMarkdown) => {
-      if (applyingContent) return
+      if (applyingContent || nextMarkdown === currentMarkdown) return
       currentMarkdown = nextMarkdown
+      documentRevision += 1
       handleDocumentChange()
     })
   })
@@ -176,6 +241,7 @@ async function createEditor(markdown: string, restoredDraft: boolean) {
     await editor.create()
     crepe = editor
     currentMarkdown = editor.getMarkdown()
+    documentRevision += 1
     lastSavedContent = restoredDraft ? null : currentMarkdown
     updateDocumentState(
       restoredDraft ? 'Draft restored · choose a file to save' : 'Ready',
@@ -200,8 +266,26 @@ function bindEvents() {
   openButton.addEventListener('click', openDocument)
   saveButton.addEventListener('click', () => saveDocument())
   saveAsButton.addEventListener('click', () => saveDocument(true))
+  dismissUpdateButton.addEventListener('click', dismissPendingUpdate)
+  applyUpdateButton.addEventListener('click', applyPendingUpdate)
+  appearanceButton.addEventListener('click', toggleAppearancePanel)
+  closeAppearanceButton.addEventListener('click', closeAppearancePanel)
+  fontFamilySelect.addEventListener('change', () => {
+    updateEditorAppearance({
+      fontFamily: fontFamilySelect.value as EditorFontId,
+    })
+  })
+  fontSizeInput.addEventListener('input', () => {
+    updateEditorAppearance({ fontSize: Number(fontSizeInput.value) })
+  })
+  lineHeightInput.addEventListener('input', () => {
+    updateEditorAppearance({ lineHeight: Number(lineHeightInput.value) })
+  })
+  resetAppearanceButton.addEventListener('click', resetEditorAppearance)
   themeButton.addEventListener('click', toggleTheme)
   fallbackFileInput.addEventListener('change', openFallbackFile)
+  document.addEventListener('click', handleDocumentClick)
+  window.addEventListener('storage', handleStorageChange)
   window.addEventListener('keydown', handleGlobalKeydown)
   window.addEventListener('beforeunload', warnAboutUnsavedChanges)
 }
@@ -228,13 +312,18 @@ function replaceEditorContent(
 
   persistDraft.cancel()
   applyingContent = true
-  crepe.editor.action(replaceAll(markdown, true))
-  currentMarkdown = crepe.getMarkdown()
-  applyingContent = false
+  try {
+    crepe.editor.action(replaceAll(markdown, true))
+    currentMarkdown = crepe.getMarkdown()
+    documentRevision += 1
+  } finally {
+    applyingContent = false
+  }
 
   currentFileName = name || 'untitled.md'
   currentPath = path || currentFileName
   currentFileHandle = handle
+  currentDiskBaseline = handle && saved ? { handle, content: markdown } : null
   lastSavedContent = saved ? currentMarkdown : null
   clearCurrentDraft()
   updateDocumentState(saved ? 'Opened' : 'New document')
@@ -462,16 +551,7 @@ async function saveDocument(forceSaveAs = false) {
     if (targetFileHandle) {
       const savingExistingFile =
         !forceSaveAs && targetFileHandle === currentFileHandle
-      const markdownToSave = syncCurrentMarkdown()
-      const writable = await targetFileHandle.createWritable()
-      await writable.write(markdownToSave)
-      await writable.close()
-      currentFileHandle = targetFileHandle
-      currentFileName = targetFileHandle.name
-      if (!savingExistingFile) currentPath = currentFileName
-      markContentSaved(markdownToSave, 'Saved locally')
-      updateSaveButton()
-      renderTree()
+      await writeToFileHandle(targetFileHandle, savingExistingFile)
       return
     }
 
@@ -481,15 +561,134 @@ async function saveDocument(forceSaveAs = false) {
       updateDocumentState()
       return
     }
+    if (error instanceof FileChangedOnDiskError) {
+      persistDraft.flush()
+      updateDocumentState('File changed on disk · reopen it or use Save as')
+      return
+    }
     console.error(error)
-    downloadDocument('File access unavailable · downloaded a copy')
+    downloadDocument('Source save failed · downloaded a recovery copy', false)
   } finally {
     saving = false
     setDocumentActionsDisabled(false)
+    syncUpdateBanner()
   }
 }
 
-function downloadDocument(message = 'Downloaded') {
+async function writeToFileHandle(
+  targetFileHandle: WritableFileHandle,
+  preservePath: boolean,
+) {
+  const markdownToSave = syncCurrentMarkdown()
+  const savedRevision = documentRevision
+
+  await withExclusiveSaveLock(targetFileHandle, preservePath, async () => {
+    if (preservePath) {
+      if (
+        !currentDiskBaseline ||
+        currentDiskBaseline.handle !== targetFileHandle
+      ) {
+        throw new FileChangedOnDiskError()
+      }
+      await assertFileMatchesBaseline(
+        targetFileHandle,
+        currentDiskBaseline.content,
+      )
+    }
+
+    const writable = await targetFileHandle.createWritable()
+    await writable.write(markdownToSave)
+    await writable.close()
+  })
+
+  currentFileHandle = targetFileHandle
+  currentDiskBaseline = { handle: targetFileHandle, content: markdownToSave }
+  currentFileName = targetFileHandle.name
+  if (!preservePath) currentPath = currentFileName
+  markContentSaved(markdownToSave, 'Saved locally')
+  updateSaveButton()
+  renderTree()
+  return savedRevision
+}
+
+async function withExclusiveSaveLock<T>(
+  targetFileHandle: WritableFileHandle,
+  preservePath: boolean,
+  save: () => Promise<T>,
+) {
+  const lockManager = (
+    navigator as Navigator & {
+      locks?: {
+        request<Result>(
+          name: string,
+          callback: () => Promise<Result>,
+        ): Promise<Result>
+      }
+    }
+  ).locks
+  if (!lockManager) return save()
+
+  const workspace = rootDirectoryHandle?.name || 'single-file'
+  const targetPath = preservePath ? currentPath : targetFileHandle.name
+  const lockName = `mdbe:save:${workspace}:${targetPath}`
+  return lockManager.request(lockName, save)
+}
+
+async function saveCurrentFileForAside(): Promise<MdbeAsideSaveOutcome> {
+  if (!crepe) {
+    return { ok: false, reason: 'editor-not-ready' }
+  }
+
+  if (saving) {
+    return { ok: false, reason: 'save-in-progress' }
+  }
+
+  if (!currentFileHandle) {
+    flushDraftForAside()
+    return {
+      ok: false,
+      reason: 'no-file-handle',
+      message: 'Open the file or folder in mdbe before asking Aside to save.',
+    }
+  }
+
+  saving = true
+  setDocumentActionsDisabled(true)
+  updateDocumentState('Saving changes from Aside…')
+
+  let result: MdbeAsideSaveOutcome
+  try {
+    const savedRevision = await writeToFileHandle(currentFileHandle, true)
+    result = { ok: true, savedRevision }
+  } catch (error) {
+    console.error(error)
+    flushDraftForAside()
+    if (error instanceof FileChangedOnDiskError) {
+      updateDocumentState('File changed on disk · Aside did not overwrite it')
+      result = {
+        ok: false,
+        reason: 'file-changed-on-disk',
+        message:
+          'Reopen the file and merge the external changes before saving.',
+      }
+    } else {
+      updateDocumentState('Aside could not save the local file')
+      result = {
+        ok: false,
+        reason: 'write-failed',
+        message: 'The writable file handle rejected the save.',
+      }
+    }
+  } finally {
+    saving = false
+    setDocumentActionsDisabled(false)
+    syncUpdateBanner()
+  }
+
+  return result
+}
+
+function downloadDocument(message = 'Downloaded', markAsSaved = true) {
   const markdownToSave = syncCurrentMarkdown()
   const blob = new Blob([markdownToSave], {
     type: 'text/markdown;charset=utf-8',
@@ -502,7 +701,12 @@ function downloadDocument(message = 'Downloaded') {
   anchor.click()
   anchor.remove()
   setTimeout(() => URL.revokeObjectURL(url), 0)
-  markContentSaved(markdownToSave, message)
+  if (markAsSaved) {
+    markContentSaved(markdownToSave, message)
+  } else {
+    persistDraft.flush()
+    updateDocumentState(message)
+  }
 }
 
 function markContentSaved(savedMarkdown: string, message: string) {
@@ -524,6 +728,12 @@ function updateDocumentState(message?: string) {
   fileName.textContent = currentFileName
   currentPathElement.textContent = currentPath
   document.title = `${dirty ? '• ' : ''}${currentFileName} · mdbe`
+  syncUpdateBanner()
+  window.dispatchEvent(
+    new CustomEvent('mdbe:state-change', {
+      detail: { revision: documentRevision, dirty, saving },
+    }),
+  )
 }
 
 function updateSaveButton() {
@@ -574,9 +784,44 @@ function syncCurrentMarkdown() {
   const latestMarkdown = crepe.getMarkdown()
   if (latestMarkdown !== currentMarkdown) {
     currentMarkdown = latestMarkdown
+    documentRevision += 1
     handleDocumentChange()
   }
   return currentMarkdown
+}
+
+function getAsideDocument(): Omit<MdbeAsideDocument, 'apiVersion'> {
+  return {
+    ready: crepe !== null,
+    fileName: currentFileName,
+    path: currentPath,
+    markdown: syncCurrentMarkdown(),
+    revision: documentRevision,
+    dirty,
+    saving,
+    canSave: crepe !== null && currentFileHandle !== null && !saving,
+    status: saveStatus.textContent || '',
+  }
+}
+
+function replaceMarkdownFromAside(markdown: string) {
+  if (!crepe) return
+
+  persistDraft.cancel()
+  applyingContent = true
+  try {
+    crepe.editor.action(replaceAll(markdown, true))
+    currentMarkdown = crepe.getMarkdown()
+    documentRevision += 1
+  } finally {
+    applyingContent = false
+  }
+  handleDocumentChange()
+}
+
+function flushDraftForAside() {
+  syncCurrentMarkdown()
+  if (dirty) persistDraft.flush()
 }
 
 function confirmDiscard() {
@@ -594,6 +839,184 @@ function isAbortError(error: unknown) {
   return error instanceof DOMException && error.name === 'AbortError'
 }
 
+function hasExtensionRuntime() {
+  return (
+    typeof chrome !== 'undefined' &&
+    Boolean(chrome.runtime?.id) &&
+    Boolean(chrome.storage?.local)
+  )
+}
+
+function initializeUpdateHandling() {
+  if (!hasExtensionRuntime()) return
+
+  chrome.runtime.onUpdateAvailable.addListener(({ version }) => {
+    const update = { version, detectedAt: Date.now() }
+    chrome.storage.local.set({ [UPDATE_READY_STORAGE_KEY]: update }, () => {
+      void chrome.runtime.lastError
+    })
+    showPendingUpdate(update)
+  })
+
+  chrome.runtime.onMessage.addListener(message => {
+    if (message?.action !== UPDATE_AVAILABLE_ACTION) return false
+    showPendingUpdate(message.data)
+    return false
+  })
+
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== 'local') return
+    const changedUpdate = changes[UPDATE_READY_STORAGE_KEY]
+    if (!changedUpdate) return
+    if (changedUpdate.newValue === undefined) {
+      pendingUpdate = null
+      syncUpdateBanner()
+      return
+    }
+    showPendingUpdate(changedUpdate.newValue)
+  })
+
+  chrome.storage.local.get(UPDATE_READY_STORAGE_KEY, items => {
+    if (chrome.runtime.lastError) return
+    showPendingUpdate(items[UPDATE_READY_STORAGE_KEY])
+  })
+}
+
+function showPendingUpdate(value: unknown) {
+  const update = normalizeExtensionUpdateInfo(value)
+  if (!update || !hasExtensionRuntime()) return
+
+  const currentVersion = chrome.runtime.getManifest().version
+  if (!isNewerExtensionVersion(update.version, currentVersion)) {
+    pendingUpdate = null
+    syncUpdateBanner()
+    chrome.storage.local.remove(UPDATE_READY_STORAGE_KEY)
+    return
+  }
+
+  pendingUpdate = update
+  if (dirty) flushDraftForAside()
+  syncUpdateBanner()
+}
+
+function updateDismissedKey(version: string) {
+  return `mdbe:update-dismissed:${version}`
+}
+
+function syncUpdateBanner() {
+  if (
+    !pendingUpdate ||
+    sessionStorage.getItem(updateDismissedKey(pendingUpdate.version)) === '1'
+  ) {
+    updateBanner.hidden = true
+    return
+  }
+
+  updateBanner.hidden = false
+  updateTitle.textContent = `mdbe ${pendingUpdate.version} is ready`
+  updateMessage.textContent = dirty
+    ? 'Save your changes before restarting to update.'
+    : 'Restart mdbe to finish the update.'
+  applyUpdateButton.disabled = dirty || saving
+  applyUpdateButton.textContent = dirty
+    ? 'Save changes first'
+    : 'Restart to update'
+}
+
+function dismissPendingUpdate() {
+  if (pendingUpdate) {
+    sessionStorage.setItem(updateDismissedKey(pendingUpdate.version), '1')
+  }
+  updateBanner.hidden = true
+}
+
+function applyPendingUpdate() {
+  if (!pendingUpdate || !hasExtensionRuntime() || saving) return
+
+  syncCurrentMarkdown()
+  flushDraftForAside()
+  if (dirty) {
+    syncUpdateBanner()
+    saveButton.focus()
+    return
+  }
+
+  applyUpdateButton.disabled = true
+  applyUpdateButton.textContent = 'Restarting…'
+  chrome.runtime.reload()
+}
+
+function applyEditorAppearance(appearance: EditorAppearance) {
+  const root = document.documentElement
+  root.dataset.mdbeEditorFont = appearance.fontFamily
+  root.style.setProperty(
+    '--mdbe-editor-font-family',
+    editorFontStack(appearance.fontFamily),
+  )
+  root.style.setProperty('--mdbe-editor-font-size', `${appearance.fontSize}px`)
+  root.style.setProperty(
+    '--mdbe-editor-line-height',
+    String(appearance.lineHeight),
+  )
+}
+
+function updateEditorAppearance(update: Partial<EditorAppearance>) {
+  editorAppearance = normalizeEditorAppearance({
+    ...editorAppearance,
+    ...update,
+  })
+  localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify(editorAppearance))
+  applyEditorAppearance(editorAppearance)
+  syncAppearanceControls()
+}
+
+function resetEditorAppearance() {
+  updateEditorAppearance({ ...DEFAULT_EDITOR_APPEARANCE })
+}
+
+function syncAppearanceControls() {
+  fontFamilySelect.value = editorAppearance.fontFamily
+  fontSizeInput.value = String(editorAppearance.fontSize)
+  fontSizeValue.value = `${editorAppearance.fontSize} px`
+  lineHeightInput.value = String(editorAppearance.lineHeight)
+  lineHeightValue.value = editorAppearance.lineHeight.toFixed(2)
+}
+
+function toggleAppearancePanel() {
+  if (appearancePanel.hidden) {
+    appearancePanel.hidden = false
+    appearanceButton.setAttribute('aria-expanded', 'true')
+    fontFamilySelect.focus()
+  } else {
+    closeAppearancePanel()
+  }
+}
+
+function closeAppearancePanel() {
+  appearancePanel.hidden = true
+  appearanceButton.setAttribute('aria-expanded', 'false')
+}
+
+function handleDocumentClick(event: MouseEvent) {
+  const target = event.target
+  if (
+    appearancePanel.hidden ||
+    !(target instanceof Node) ||
+    appearancePanel.contains(target) ||
+    appearanceButton.contains(target)
+  ) {
+    return
+  }
+  closeAppearancePanel()
+}
+
+function handleStorageChange(event: StorageEvent) {
+  if (event.key !== APPEARANCE_STORAGE_KEY) return
+  editorAppearance = parseEditorAppearance(event.newValue)
+  applyEditorAppearance(editorAppearance)
+  syncAppearanceControls()
+}
+
 function applyTheme(theme: 'light' | 'dark') {
   document.documentElement.dataset.mdbeTheme = theme
   localStorage.setItem(THEME_KEY, theme)
@@ -608,6 +1031,12 @@ function toggleTheme() {
 }
 
 function handleGlobalKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape' && !appearancePanel.hidden) {
+    closeAppearancePanel()
+    appearanceButton.focus()
+    return
+  }
+
   if (!(event.metaKey || event.ctrlKey)) return
 
   const key = event.key.toLowerCase()
