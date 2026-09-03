@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>mdbe</title>
+    <link rel="stylesheet" href="./css/editor.css" />
+  </head>
+  <body>
+    <div class="mdbe">
+      <header class="mdbe__toolbar">
+        <button
+          id="toggle-worktree"
+          class="mdbe__tree-toggle"
+          type="button"
+          aria-label="Toggle worktree"
+          title="Toggle worktree"
+        >
+          <span></span><span></span><span></span>
+        </button>
+
+        <a
+          class="mdbe__brand"
+          href="https://github.com/ChangJunPark/mdbe"
+          target="_blank"
+          rel="noreferrer"
+          title="Open the mdbe repository"
+        >
+          <img src="images/mdbe-logo.svg" alt="" />
+          <strong>mdbe</strong>
+        </a>
+
+        <div class="mdbe__actions" role="toolbar" aria-label="Document actions">
+          <button id="open-workspace" class="primary" type="button">
+            Open folder
+          </button>
+          <button id="new-document" type="button">New</button>
+          <button id="open-document" type="button">Open file</button>
+          <button id="save-document" type="button">Save…</button>
+          <button id="save-as-document" type="button">Save as</button>
+        </div>
+
+        <div class="mdbe__document-meta">
+          <span id="file-name" title="Current file">untitled.md</span>
+          <span id="save-status" class="mdbe__status" aria-live="polite"
+            >Loading</span
+          >
+          <button id="toggle-theme" type="button" title="Toggle theme">
+            Dark
+          </button>
+        </div>
+      </header>
+
+      <main class="mdbe__workspace">
+        <aside
+          id="worktree"
+          class="mdbe__worktree"
+          aria-label="Workspace files"
+        >
+          <div class="mdbe__worktree-heading">
+            <div>
+              <span class="mdbe__eyebrow">Worktree</span>
+              <strong id="workspace-name">No folder open</strong>
+            </div>
+            <button
+              id="refresh-workspace"
+              class="icon-button"
+              type="button"
+              aria-label="Refresh worktree"
+              title="Refresh worktree"
+              disabled
+            >
+              ↻
+            </button>
+          </div>
+          <div id="worktree-empty" class="mdbe__worktree-empty">
+            <p>Choose a folder to browse its Markdown files.</p>
+            <button id="open-workspace-empty" type="button">Open folder</button>
+          </div>
+          <nav
+            id="file-tree"
+            class="mdbe__file-tree"
+            role="tree"
+            aria-label="Markdown files"
+          ></nav>
+        </aside>
+
+        <section class="mdbe__document" aria-label="Markdown document">
+          <div class="mdbe__document-bar">
+            <span id="current-path">untitled.md</span>
+            <span>WYSIWYG Markdown</span>
+          </div>
+          <div class="mdbe__editor-scroll">
+            <div id="milkdown-editor" class="mdbe__editor-host"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <input
+      id="fallback-file-input"
+      type="file"
+      accept=".md,.mdx,.mkd,.markdown,text/markdown,text/plain"
+      hidden
+    />
+    <script src="./js/editor.js"></script>
+  </body>
+</html>
