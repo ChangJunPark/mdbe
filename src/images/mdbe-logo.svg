@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="mdbe logo">
+  <defs>
+    <linearGradient id="bg" x1="80" y1="56" x2="432" y2="456" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6f88e8"/>
+      <stop offset="1" stop-color="#435cc1"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <path d="M96 142c0-17.7 14.3-32 32-32h256c17.7 0 32 14.3 32 32v228c0 17.7-14.3 32-32 32H128c-17.7 0-32-14.3-32-32V142Z" fill="#fff" fill-opacity=".12" stroke="#fff" stroke-width="18"/>
+  <path d="M141 185v142h34v-86l48 58 48-58v86h34V185h-34l-48 60-48-60h-34Z" fill="#fff"/>
+  <path d="M344 190v78h-31l48 58 48-58h-31v-78h-34Z" fill="#fff"/>
+  <path d="m318 373 75-75 28 28-75 75-38 10 10-38Z" fill="#ffd66b" stroke="#435cc1" stroke-width="8" stroke-linejoin="round"/>
+</svg>
